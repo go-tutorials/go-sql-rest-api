@@ -26,6 +26,7 @@ func NewApp(context context.Context, root Root) (*ApplicationContext, error) {
 	}
 	logError := log.ErrorMsg
 	status := sv.InitializeStatus(root.Status)
+
 	userType := reflect.TypeOf(user.User{})
 	userRepository, err := sql.NewRepository(db, "users", userType)
 	if err != nil {
