@@ -8,8 +8,9 @@ import (
 )
 
 type Root struct {
-	Server     sv.ServerConfig `mapstructure:"server"`
-	Sql        sql.Config      `mapstructure:"sql"`
-	Log        log.Config      `mapstructure:"log"`
-	MiddleWare mid.LogConfig   `mapstructure:"middleware"`
+	Server     sv.ServerConf    `mapstructure:"server"`
+	Sql        sql.Config       `mapstructure:"sql"`
+	Log        log.Config       `mapstructure:"log"`
+	MiddleWare mid.LogConfig    `mapstructure:"middleware"`
+	Status     *sv.StatusConfig `mapstructure:"status"`
 }

@@ -1,141 +1,88 @@
 package user
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 	"reflect"
 
 	sv "github.com/core-go/service"
-	"github.com/gorilla/mux"
 )
 
 type UserHandler struct {
-	service UserService
+	service   UserService
+	keys      []string
+	indexes   map[string]int
+	modelType reflect.Type
+	Status    sv.StatusConfig
+	Validate  func(ctx context.Context, model interface{}) ([]sv.ErrorMessage, error)
+	Error     func(context.Context, string)
 }
 
-func NewUserHandler(service UserService) *UserHandler {
-	return &UserHandler{service: service}
-}
-
-func (h *UserHandler) All(w http.ResponseWriter, r *http.Request) {
-	result, err := h.service.All(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusOK, result)
+func NewUserHandler(service UserService, status sv.StatusConfig, validate func(ctx context.Context, model interface{}) ([]sv.ErrorMessage, error), logError func(context.Context, string)) *UserHandler {
+	modelType := reflect.TypeOf(User{})
+	keys, indexes, _ := sv.BuildHandlerParams(modelType)
+	return &UserHandler{service: service, keys: keys, indexes: indexes, modelType: modelType, Status: status, Validate: validate, Error: logError}
 }
 
 func (h *UserHandler) Load(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if len(id) == 0 {
-		http.Error(w, "Id cannot be empty", http.StatusBadRequest)
-		return
+	id := sv.GetRequiredParam(w, r)
+	if len(id) > 0 {
+		result, err := h.service.Load(r.Context(), id)
+		sv.RespondModel(w, r, result, err, h.Error, nil)
 	}
-
-	result, err := h.service.Load(r.Context(), id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusOK, result)
 }
-
+func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+	h.Insert(w, r)
+}
 func (h *UserHandler) Insert(w http.ResponseWriter, r *http.Request) {
 	var user User
-	er1 := json.NewDecoder(r.Body).Decode(&user)
-	defer r.Body.Close()
-	if er1 != nil {
-		http.Error(w, er1.Error(), http.StatusBadRequest)
-		return
+	er1 := sv.Decode(w, r, &user)
+	if er1 == nil {
+		errors, er2 := h.Validate(r.Context(), &user)
+		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
+			result, er3 := h.service.Insert(r.Context(), &user)
+			sv.AfterCreated(w, r, &user, result, er3, h.Status, h.Error, nil)
+		}
 	}
-
-	result, er2 := h.service.Insert(r.Context(), &user)
-	if er2 != nil {
-		http.Error(w, er1.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusCreated, result)
 }
-
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var user User
-	er1 := json.NewDecoder(r.Body).Decode(&user)
-	defer r.Body.Close()
-	if er1 != nil {
-		http.Error(w, er1.Error(), http.StatusBadRequest)
-		return
+	er1 := sv.Decode(w, r, &user)
+	if er1 == nil {
+		er2 := sv.CheckId(w, r, &user, h.keys, h.indexes)
+		if er2 == nil {
+			errors, er3 := h.Validate(r.Context(), &user)
+			if !sv.HasError(w, r, errors, er3, *h.Status.ValidationError, h.Error, nil) {
+				result, er4 := h.service.Update(r.Context(), &user)
+				sv.HandleResult(w, r, &user, result, er4, h.Status, h.Error, nil)
+			}
+		}
 	}
-	id := mux.Vars(r)["id"]
-	if len(id) == 0 {
-		http.Error(w, "Id cannot be empty", http.StatusBadRequest)
-		return
-	}
-	if len(user.Id) == 0 {
-		user.Id = id
-	} else if id != user.Id {
-		http.Error(w, "Id not match", http.StatusBadRequest)
-		return
-	}
-
-	result, er2 := h.service.Update(r.Context(), &user)
-	if er2 != nil {
-		http.Error(w, er2.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusOK, result)
 }
-
 func (h *UserHandler) Patch(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if len(id) == 0 {
-		http.Error(w, "Id cannot be empty", http.StatusBadRequest)
-		return
-	}
-
-	ids := []string{"id"}
-
+	r = r.WithContext(context.WithValue(r.Context(), sv.Method, sv.Patch))
 	var user User
-	userType := reflect.TypeOf(user)
-	_, jsonMap := sv.BuildMapField(userType)
-	body, _ := sv.BuildMapAndStruct(r, &user)
-	if len(user.Id) == 0 {
-		user.Id = id
-	} else if id != user.Id {
-		http.Error(w, "Id not match", http.StatusBadRequest)
-		return
+	body, er0 := sv.BuildMapAndStruct(r, &user, w)
+	if er0 == nil {
+		er1 := sv.CheckId(w, r, &user, h.keys, h.indexes)
+		if er1 == nil {
+			errors, er2 := h.Validate(r.Context(), &user)
+			if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
+				json, er3 := sv.BodyToJson(w, r, user, body, h.keys, h.indexes, nil, h.Error, nil)
+				if er3 != nil {
+					http.Error(w, er3.Error(), http.StatusInternalServerError)
+					return
+				}
+				result, er4 := h.service.Patch(r.Context(), json)
+				sv.HandleResult(w, r, json, result, er4, h.Status, h.Error, nil)
+			}
+		}
 	}
-	json, er1 := sv.BodyToJson(r, user, body, ids, jsonMap, nil)
-	if er1 != nil {
-		http.Error(w, er1.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	result, er2 := h.service.Patch(r.Context(), json)
-	if er2 != nil {
-		http.Error(w, er2.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusOK, result)
 }
-
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	if len(id) == 0 {
-		http.Error(w, "Id cannot be empty", http.StatusBadRequest)
-		return
+	id := sv.GetRequiredParam(w, r)
+	if len(id) > 0 {
+		result, err := h.service.Delete(r.Context(), id)
+		sv.HandleDelete(w, r, result, err, h.Error, nil)
 	}
-	result, err := h.service.Delete(r.Context(), id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	respond(w, http.StatusOK, result)
-}
-
-func respond(w http.ResponseWriter, code int, result interface{}) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	err := json.NewEncoder(w).Encode(result)
-	return err
 }
