@@ -11,12 +11,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 
-	"go-service/internal/usecase/user"
+	. "go-service/internal/usecase/user"
 )
 
 type ApplicationContext struct {
 	HealthHandler *health.Handler
-	UserHandler   user.UserHandler
+	UserHandler   UserHandler
 }
 
 func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
@@ -27,7 +27,7 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 	logError := log.ErrorMsg
 	status := sv.InitializeStatus(root.Status)
 
-	userType := reflect.TypeOf(user.User{})
+	userType := reflect.TypeOf(User{})
 	userQueryBuilder := query.NewBuilder(db, "users", userType)
 	userSearchBuilder, err := q.NewSearchBuilder(db, userType, userQueryBuilder.BuildQuery)
 	if err != nil {
@@ -37,9 +37,9 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	userService := user.NewUserService(userRepository)
+	userService := NewUserService(userRepository)
 	validator := v.NewValidator()
-	userHandler := user.NewUserHandler(userSearchBuilder.Search, userService, status, validator.Validate, logError)
+	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, validator.Validate, logError)
 
 	sqlChecker := q.NewHealthChecker(db)
 	healthHandler := health.NewHandler(sqlChecker)
