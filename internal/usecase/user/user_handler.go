@@ -27,7 +27,7 @@ func NewUserHandler(service UserService, status sv.StatusConfig, validate func(c
 func (h *UserHandler) Load(w http.ResponseWriter, r *http.Request) {
 	id := sv.GetRequiredParam(w, r)
 	if len(id) > 0 {
-		result, err := h.service.Load(r.Context(), id)
+		result, err := Load(r.Context(), id)
 		sv.RespondModel(w, r, result, err, h.Error, nil)
 	}
 }
@@ -40,7 +40,7 @@ func (h *UserHandler) Insert(w http.ResponseWriter, r *http.Request) {
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
-			result, er3 := h.service.Insert(r.Context(), &user)
+			result, er3 := Insert(r.Context(), &user)
 			sv.AfterCreated(w, r, &user, result, er3, h.Status, h.Error, nil)
 		}
 	}
@@ -51,7 +51,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
-			result, er3 := h.service.Update(r.Context(), &user)
+			result, er3 := Update(r.Context(), &user)
 			sv.HandleResult(w, r, &user, result, er3, h.Status, h.Error, nil)
 		}
 	}
@@ -62,7 +62,7 @@ func (h *UserHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
-			result, er3 := h.service.Patch(r.Context(), json)
+			result, er3 := Patch(r.Context(), json)
 			sv.HandleResult(w, r, json, result, er3, h.Status, h.Error, nil)
 		}
 	}
@@ -70,7 +70,7 @@ func (h *UserHandler) Patch(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := sv.GetRequiredParam(w, r)
 	if len(id) > 0 {
-		result, err := h.service.Delete(r.Context(), id)
+		result, err := Delete(r.Context(), id)
 		sv.HandleDelete(w, r, result, err, h.Error, nil)
 	}
 }

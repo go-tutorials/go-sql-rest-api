@@ -11,7 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 
-	"go-service/internal/user"
+	"go-service/internal/usecase/user"
 )
 
 type ApplicationContext struct {
