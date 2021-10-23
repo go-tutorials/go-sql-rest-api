@@ -26,6 +26,7 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 	}
 	logError := log.ErrorMsg
 	status := sv.InitializeStatus(root.Status)
+	validator := v.NewValidator()
 
 	userType := reflect.TypeOf(User{})
 	userQueryBuilder := query.NewBuilder(db, "users", userType)
@@ -38,7 +39,6 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 		return nil, err
 	}
 	userService := NewUserService(userRepository)
-	validator := v.NewValidator()
 	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, validator.Validate, logError)
 
 	sqlChecker := q.NewHealthChecker(db)
