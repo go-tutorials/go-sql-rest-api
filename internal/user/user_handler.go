@@ -47,35 +47,23 @@ func (h *UserHandler) Insert(w http.ResponseWriter, r *http.Request) {
 }
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var user User
-	er1 := sv.Decode(w, r, &user)
+	er1 := sv.DecodeAndCheckId(w, r, &user, h.keys, h.indexes)
 	if er1 == nil {
-		er2 := sv.CheckId(w, r, &user, h.keys, h.indexes)
-		if er2 == nil {
-			errors, er3 := h.Validate(r.Context(), &user)
-			if !sv.HasError(w, r, errors, er3, *h.Status.ValidationError, h.Error, nil) {
-				result, er4 := h.service.Update(r.Context(), &user)
-				sv.HandleResult(w, r, &user, result, er4, h.Status, h.Error, nil)
-			}
+		errors, er2 := h.Validate(r.Context(), &user)
+		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
+			result, er3 := h.service.Update(r.Context(), &user)
+			sv.HandleResult(w, r, &user, result, er3, h.Status, h.Error, nil)
 		}
 	}
 }
 func (h *UserHandler) Patch(w http.ResponseWriter, r *http.Request) {
-	r = r.WithContext(context.WithValue(r.Context(), sv.Method, sv.Patch))
 	var user User
-	body, er0 := sv.BuildMapAndStruct(r, &user, w)
-	if er0 == nil {
-		er1 := sv.CheckId(w, r, &user, h.keys, h.indexes)
-		if er1 == nil {
-			errors, er2 := h.Validate(r.Context(), &user)
-			if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
-				json, er3 := sv.BodyToJson(w, r, user, body, h.keys, h.indexes, nil, h.Error, nil)
-				if er3 != nil {
-					http.Error(w, er3.Error(), http.StatusInternalServerError)
-					return
-				}
-				result, er4 := h.service.Patch(r.Context(), json)
-				sv.HandleResult(w, r, json, result, er4, h.Status, h.Error, nil)
-			}
+	r, json, er1 := sv.BuildMapAndCheckId(w, r, &user, h.keys, h.indexes)
+	if er1 == nil {
+		errors, er2 := h.Validate(r.Context(), &user)
+		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, nil) {
+			result, er3 := h.service.Patch(r.Context(), json)
+			sv.HandleResult(w, r, json, result, er3, h.Status, h.Error, nil)
 		}
 	}
 }
