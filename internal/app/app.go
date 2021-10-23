@@ -5,9 +5,9 @@ import (
 	"github.com/core-go/health"
 	"github.com/core-go/log"
 	sv "github.com/core-go/service"
-	h "github.com/core-go/service/handler"
 	v "github.com/core-go/service/v10"
-	"github.com/core-go/sql"
+	q "github.com/core-go/sql"
+	"github.com/core-go/sql/query"
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 
@@ -16,11 +16,11 @@ import (
 
 type ApplicationContext struct {
 	HealthHandler *health.Handler
-	UserHandler   h.Handler
+	UserHandler   user.UserHandler
 }
 
 func NewApp(context context.Context, root Root) (*ApplicationContext, error) {
-	db, err := sql.OpenByConfig(root.Sql)
+	db, err := q.OpenByConfig(root.Sql)
 	if err != nil {
 		return nil, err
 	}
@@ -28,15 +28,20 @@ func NewApp(context context.Context, root Root) (*ApplicationContext, error) {
 	status := sv.InitializeStatus(root.Status)
 
 	userType := reflect.TypeOf(user.User{})
-	userRepository, err := sql.NewRepository(db, "users", userType)
+	userQueryBuilder := query.NewBuilder(db, "users", userType)
+	userSearchBuilder, err := q.NewSearchBuilder(db, userType, userQueryBuilder.BuildQuery)
+	if err != nil {
+		return nil, err
+	}
+	userRepository, err := q.NewRepository(db, "users", userType)
 	if err != nil {
 		return nil, err
 	}
 	userService := user.NewUserService(userRepository)
 	validator := v.NewValidator()
-	userHandler := user.NewUserHandler(userService, status, validator.Validate, logError)
+	userHandler := user.NewUserHandler(userSearchBuilder.Search, userService, status, validator.Validate, logError)
 
-	sqlChecker := sql.NewHealthChecker(db)
+	sqlChecker := q.NewHealthChecker(db)
 	healthHandler := health.NewHandler(sqlChecker)
 
 	return &ApplicationContext{

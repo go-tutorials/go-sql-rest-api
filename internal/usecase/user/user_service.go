@@ -7,21 +7,21 @@ import (
 
 type UserService interface {
 	Load(ctx context.Context, id string) (*User, error)
-	Insert(ctx context.Context, user *User) (int64, error)
+	Create(ctx context.Context, user *User) (int64, error)
 	Update(ctx context.Context, user *User) (int64, error)
 	Patch(ctx context.Context, user map[string]interface{}) (int64, error)
 	Delete(ctx context.Context, id string) (int64, error)
 }
 
-type DefaultUserService struct {
+func NewUserService(repository sv.Repository) UserService {
+	return &userService{repository: repository}
+}
+
+type userService struct {
 	repository sv.Repository
 }
 
-func NewUserService(repository sv.Repository) *DefaultUserService {
-	return &DefaultUserService{repository: repository}
-}
-
-func (s *DefaultUserService) Load(ctx context.Context, id string) (*User, error) {
+func (s *userService) Load(ctx context.Context, id string) (*User, error) {
 	var user User
 	ok, err := s.repository.LoadAndDecode(ctx, id, &user)
 	if !ok {
@@ -30,15 +30,15 @@ func (s *DefaultUserService) Load(ctx context.Context, id string) (*User, error)
 		return &user, err
 	}
 }
-func (s *DefaultUserService) Insert(ctx context.Context, user *User) (int64, error) {
+func (s *userService) Create(ctx context.Context, user *User) (int64, error) {
 	return s.repository.Insert(ctx, user)
 }
-func (s *DefaultUserService) Update(ctx context.Context, user *User) (int64, error) {
+func (s *userService) Update(ctx context.Context, user *User) (int64, error) {
 	return s.repository.Update(ctx, user)
 }
-func (s *DefaultUserService) Patch(ctx context.Context, user map[string]interface{}) (int64, error) {
+func (s *userService) Patch(ctx context.Context, user map[string]interface{}) (int64, error) {
 	return s.repository.Patch(ctx, user)
 }
-func (s *DefaultUserService) Delete(ctx context.Context, id string) (int64, error) {
+func (s *userService) Delete(ctx context.Context, id string) (int64, error) {
 	return s.repository.Delete(ctx, id)
 }
