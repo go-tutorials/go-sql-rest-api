@@ -8,6 +8,7 @@ sql:
 
 log:
   level: info
+  fields: app,service,username
   map:
     time: "@timestamp"
     msg: message
@@ -18,6 +19,12 @@ middleware:
   request: request
   response: response
   size: size
+  masks: username
+  constants:
+    app: "backoffice"
+    service: back-office
+  map:
+    username: username
 
 status:
   not_found: 0
