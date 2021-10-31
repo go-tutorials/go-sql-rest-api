@@ -39,7 +39,7 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	userService := NewUserService(userRepository)
+	userService := NewUserService(db, userRepository)
 	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, logError, validator.Validate, &action)
 
 	sqlChecker := q.NewHealthChecker(db)
