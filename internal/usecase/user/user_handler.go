@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/core-go/search"
 	sv "github.com/core-go/service"
 	"net/http"
@@ -50,23 +51,25 @@ func (h *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h *userHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := sv.GetRequiredParam(w, r)
 	var user User
 	er1 := sv.DecodeAndCheckId(w, r, &user, h.Keys, h.Indexes)
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, h.Log, h.Resource, h.Action.Update) {
-			result, er3 := h.service.Update(r.Context(), &user)
+			result, er3 := h.service.Update(r.Context(), &user, id)
 			sv.HandleResult(w, r, &user, result, er3, h.Status, h.Error, h.Log, h.Resource, h.Action.Update)
 		}
 	}
 }
 func (h *userHandler) Patch(w http.ResponseWriter, r *http.Request) {
+	id := sv.GetRequiredParam(w, r)
 	var user User
 	r, json, er1 := sv.BuildMapAndCheckId(w, r, &user, h.Keys, h.Indexes)
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, h.Log, h.Resource, h.Action.Patch) {
-			result, er3 := h.service.Patch(r.Context(), json)
+			result, er3 := h.service.Patch(r.Context(), json, id)
 			sv.HandleResult(w, r, json, result, er3, h.Status, h.Error, h.Log, h.Resource, h.Action.Patch)
 		}
 	}
@@ -77,4 +80,10 @@ func (h *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		result, err := h.service.Delete(r.Context(), id)
 		sv.HandleDelete(w, r, result, err, h.Error, h.Log, h.Resource, h.Action.Delete)
 	}
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, resp interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(resp)
 }

@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 
+	_ "github.com/lib/pq"
 	. "go-service/internal/usecase/user"
 )
 
@@ -30,16 +31,14 @@ func NewApp(ctx context.Context, root Root) (*ApplicationContext, error) {
 	validator := v.NewValidator()
 
 	userType := reflect.TypeOf(User{})
-	userQueryBuilder := query.NewBuilder(db, "users", userType)
+	userQueryBuilder := query.NewBuilder(db, "usertest", userType)
 	userSearchBuilder, err := q.NewSearchBuilder(db, userType, userQueryBuilder.BuildQuery)
 	if err != nil {
 		return nil, err
 	}
-	userRepository, err := q.NewRepository(db, "users", userType)
-	if err != nil {
-		return nil, err
-	}
-	userService := NewUserService(db, userRepository)
+
+	userRepository := NewUserRepository(db)
+	userService := NewUserService(userRepository)
 	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, logError, validator.Validate, &action)
 
 	sqlChecker := q.NewHealthChecker(db)
