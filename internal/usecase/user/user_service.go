@@ -1,8 +1,6 @@
 package user
 
-import (
-	"context"
-)
+import "context"
 
 type UserService interface {
 	Load(ctx context.Context, id string) (*User, error)

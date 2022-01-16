@@ -16,66 +16,61 @@ type UserRepository interface {
 }
 
 func NewUserRepository(db *sql.DB) UserRepository {
-	return &userRepo{DB: db}
+	return &userRepository{DB: db}
 }
 
-type userRepo struct {
+type userRepository struct {
 	DB *sql.DB
 }
 
-func (s *userRepo) Load(ctx context.Context, id string) (*User, error) {
-	query := "select * from usertest where id = $1 limit 1"
-	rows, err := s.DB.QueryContext(ctx, query, id)
+func (r *userRepository) Load(ctx context.Context, id string) (*User, error) {
+	query := "select id, username, email, phone, date_of_birth from users"
+	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-
-	var res []User
-	user := User{}
+	var result []User
 	for rows.Next() {
-		err := rows.Scan(&user.Username, &user.Id, &user.Email, &user.Phone)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, user)
+		var user User
+		err = rows.Scan(&user.Id, &user.Username, &user.Phone, &user.Email, &user.DateOfBirth)
+		result = append(result, user)
 	}
-
-	return &res[0], nil
+	if len(result) > 0 {
+		return &result[0], nil
+	} else {
+		return nil, nil
+	}
 }
 
-func (s *userRepo) Create(ctx context.Context, user *User) (int64, error) {
-	query := fmt.Sprintf("INSERT INTO usertest(id, username, email, phone) VALUES ('%s', '%s', '%s', '%s')",
-		user.Id,
-		user.Username,
-		user.Email,
-		user.Phone)
-
-	result, err := s.DB.ExecContext(ctx, query)
-	if err != nil {
-		return 0, err
+func (r *userRepository) Create(ctx context.Context, user *User) (int64, error) {
+	query := "insert into users (id, username, email, phone, date_of_birth) values (?, ?, ?, ?, ?)"
+	stmt, er0 := r.DB.Prepare(query)
+	if er0 != nil {
+		return -1, nil
 	}
-
+	result, er1 := stmt.ExecContext(ctx, user.Id, user.Username, user.Email, user.Phone, user.DateOfBirth)
+	if er1 != nil {
+		return -1, nil
+	}
 	return result.RowsAffected()
 }
 
-func (s *userRepo) Update(ctx context.Context, user *User, id string) (int64, error) {
-	query := fmt.Sprintf("UPDATE usertest SET username='%s', email='%s', phone='%s' WHERE id='%s'",
-		user.Username,
-		user.Email,
-		user.Phone,
-		id)
-
-	result, err := s.DB.ExecContext(ctx, query)
-	if err != nil {
-		return 0, err
+func (r *userRepository) Update(ctx context.Context, user *User, id string) (int64, error) {
+	query := "update users set username = ?, email = ?, phone = ?, date_of_birth = ? where id = ?"
+	stmt, er0 := r.DB.Prepare(query)
+	if er0 != nil {
+		return -1, nil
 	}
-
+	result, er1 := stmt.ExecContext(ctx, user.Username, user.Email, user.Phone, user.DateOfBirth, user.Id)
+	if er1 != nil {
+		return -1, er1
+	}
 	return result.RowsAffected()
 }
 
-func (s *userRepo) Patch(ctx context.Context, user map[string]interface{}, id string) (int64, error) {
-	updateClause := "UPDATE usertest SET"
-	whereClause := fmt.Sprintf("WHERE id='%s'", id)
+func (r *userRepository) Patch(ctx context.Context, user map[string]interface{}, id string) (int64, error) {
+	updateClause := "update users set"
+	whereClause := fmt.Sprintf("where id='%s'", id)
 
 	setClause := make([]string, 0)
 	if user["username"] != nil {
@@ -95,7 +90,7 @@ func (s *userRepo) Patch(ctx context.Context, user map[string]interface{}, id st
 	querySlice := []string{updateClause, setClauseRes, whereClause}
 	query := strings.Join(querySlice, " ")
 
-	result, err := s.DB.ExecContext(ctx, query)
+	result, err := r.DB.ExecContext(ctx, query)
 	if err != nil {
 		return 0, err
 	}
@@ -103,13 +98,19 @@ func (s *userRepo) Patch(ctx context.Context, user map[string]interface{}, id st
 	return result.RowsAffected()
 }
 
-func (s *userRepo) Delete(ctx context.Context, id string) (int64, error) {
-	query := "delete from usertest where id = $1"
-
-	result, err := s.DB.ExecContext(ctx, query, id)
-	if err != nil {
-		return 0, err
+func (r *userRepository) Delete(ctx context.Context, id string) (int64, error) {
+	query := "delete from users where id = ?"
+	stmt, er0 := r.DB.Prepare(query)
+	if er0 != nil {
+		return -1, nil
 	}
-
-	return result.RowsAffected()
+	result, er1 := stmt.ExecContext(ctx, id)
+	if er1 != nil {
+		return -1, er1
+	}
+	rowAffect, er2 := result.RowsAffected()
+	if er2 != nil {
+		return 0, er2
+	}
+	return rowAffect, nil
 }
