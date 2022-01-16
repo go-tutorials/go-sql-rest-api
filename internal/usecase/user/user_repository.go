@@ -10,8 +10,8 @@ import (
 type UserRepository interface {
 	Load(ctx context.Context, id string) (*User, error)
 	Create(ctx context.Context, user *User) (int64, error)
-	Update(ctx context.Context, user *User, id string) (int64, error)
-	Patch(ctx context.Context, user map[string]interface{}, id string) (int64, error)
+	Update(ctx context.Context, user *User) (int64, error)
+	Patch(ctx context.Context, id string, user map[string]interface{}) (int64, error)
 	Delete(ctx context.Context, id string) (int64, error)
 }
 
@@ -55,7 +55,7 @@ func (r *userRepository) Create(ctx context.Context, user *User) (int64, error) 
 	return result.RowsAffected()
 }
 
-func (r *userRepository) Update(ctx context.Context, user *User, id string) (int64, error) {
+func (r *userRepository) Update(ctx context.Context, user *User) (int64, error) {
 	query := "update users set username = ?, email = ?, phone = ?, date_of_birth = ? where id = ?"
 	stmt, er0 := r.DB.Prepare(query)
 	if er0 != nil {
@@ -68,7 +68,7 @@ func (r *userRepository) Update(ctx context.Context, user *User, id string) (int
 	return result.RowsAffected()
 }
 
-func (r *userRepository) Patch(ctx context.Context, user map[string]interface{}, id string) (int64, error) {
+func (r *userRepository) Patch(ctx context.Context, id string, user map[string]interface{}) (int64, error) {
 	updateClause := "update users set"
 	whereClause := fmt.Sprintf("where id='%s'", id)
 

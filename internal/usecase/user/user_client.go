@@ -47,14 +47,14 @@ func (c *UserClient) Create(ctx context.Context, user *User) (int64, error) {
 	return res.Status, err
 }
 
-func (c *UserClient) Update(ctx context.Context, user *User, id string) (int64, error) {
-	url := c.Url + "/" + id
+func (c *UserClient) Update(ctx context.Context, user *User) (int64, error) {
+	url := c.Url + "/" + user.Id
 	var res ResultInfo
 	err := client.Put(ctx, c.Client, url, user, &res, c.Config, c.Log)
 	return res.Status, err
 }
 
-func (c *UserClient) Patch(ctx context.Context, user map[string]interface{}, id string) (int64, error) {
+func (c *UserClient) Patch(ctx context.Context, id string, user map[string]interface{}) (int64, error) {
 	url := c.Url + "/" + id
 	var res ResultInfo
 	err := client.Patch(ctx, c.Client, url, user, &res, c.Config, c.Log)

@@ -15,11 +15,11 @@ import (
 )
 
 type ApplicationContext struct {
-	HealthHandler *health.Handler
-	UserHandler   UserHandler
+	Health *health.Handler
+	User   UserHandler
 }
 
-func NewApp(ctx context.Context, conf Root) (*ApplicationContext, error) {
+func NewApp(ctx context.Context, conf Conf) (*ApplicationContext, error) {
 	db, err := q.OpenByConfig(conf.Sql)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func NewApp(ctx context.Context, conf Root) (*ApplicationContext, error) {
 	healthHandler := health.NewHandler(sqlChecker)
 
 	return &ApplicationContext{
-		HealthHandler: healthHandler,
-		UserHandler:   userHandler,
+		Health: healthHandler,
+		User:   userHandler,
 	}, nil
 }
