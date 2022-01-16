@@ -36,7 +36,7 @@ func NewApp(ctx context.Context, conf Config) (*ApplicationContext, error) {
 		return nil, err
 	}
 
-	userRepository, err := NewUserClient(conf.Client, log.InfoFields) // userRepository := NewUserRepository(db)
+	userRepository := NewUserRepository(db) // userRepository, err := NewUserClient(conf.Client, log.InfoFields)
 	userService := NewUserService(userRepository)
 	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, logError, validator.Validate, &action)
 
