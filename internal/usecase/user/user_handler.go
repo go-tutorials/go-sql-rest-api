@@ -40,12 +40,12 @@ func (h *userHandler) Load(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Load(r.Context(), id)
+	res, err := h.service.Load(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	JSON(w, result)
+	JSON(w, res)
 }
 func (h *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var user User
@@ -56,12 +56,12 @@ func (h *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, er2 := h.service.Create(r.Context(), &user)
+	res, er2 := h.service.Create(r.Context(), &user)
 	if er2 != nil {
 		http.Error(w, er1.Error(), http.StatusInternalServerError)
 		return
 	}
-	JSON(w, result)
+	JSON(w, res)
 }
 func (h *userHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var user User
@@ -83,12 +83,12 @@ func (h *userHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, er2 := h.service.Update(r.Context(), &user)
+	res, er2 := h.service.Update(r.Context(), &user)
 	if er2 != nil {
 		http.Error(w, er2.Error(), http.StatusInternalServerError)
 		return
 	}
-	JSON(w, result)
+	JSON(w, res)
 }
 func (h *userHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	id := sv.GetRequiredParam(w, r)
@@ -97,8 +97,8 @@ func (h *userHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	if er1 == nil {
 		errors, er2 := h.Validate(r.Context(), &user)
 		if !sv.HasError(w, r, errors, er2, *h.Status.ValidationError, h.Error, h.Log, h.Resource, h.Action.Patch) {
-			result, er3 := h.service.Patch(r.Context(), id, json)
-			sv.HandleResult(w, r, json, result, er3, h.Status, h.Error, h.Log, h.Resource, h.Action.Patch)
+			res, er3 := h.service.Patch(r.Context(), id, json)
+			sv.HandleResult(w, r, json, res, er3, h.Status, h.Error, h.Log, h.Resource, h.Action.Patch)
 		}
 	}
 }
@@ -108,17 +108,17 @@ func (h *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Id cannot be empty", http.StatusBadRequest)
 		return
 	}
-	result, err := h.service.Delete(r.Context(), id)
+	res, err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	JSON(w, result)
+	JSON(w, res)
 }
 
-func JSON(w http.ResponseWriter, result interface{}) {
-	response, _ := json.Marshal(result)
+func JSON(w http.ResponseWriter, res interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(response)
+	err := json.NewEncoder(w).Encode(res)
+	return err
 }
