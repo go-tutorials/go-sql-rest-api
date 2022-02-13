@@ -73,8 +73,8 @@ func (c *UserClient) Create(ctx context.Context, user *User) (int64, error) {
 	}
 }
 
-func (c *UserClient) Update(ctx context.Context, user *User, id string) (int64, error) {
-	requestURL := fmt.Sprintf("%s/%s", c.Url, id)
+func (c *UserClient) Update(ctx context.Context, user *User) (int64, error) {
+	requestURL := fmt.Sprintf("%s/%s", c.Url, user.Id)
 
 	data, err := json.Marshal(user)
 	req, err := http.NewRequest("PUT", requestURL, bytes.NewBuffer(data))

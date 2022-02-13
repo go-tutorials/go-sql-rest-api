@@ -12,6 +12,7 @@ import (
 	"reflect"
 
 	. "go-service/internal/usecase/user"
+	"go-service/pkg/client"
 )
 
 type ApplicationContext struct {
@@ -36,7 +37,11 @@ func NewApp(ctx context.Context, conf Config) (*ApplicationContext, error) {
 		return nil, err
 	}
 
-	userRepository := NewUserRepository(db) // userRepository, err := NewUserClient(conf.Client, log.InfoFields)
+	client, _, _, err := client.InitializeClient(conf.Client)
+	if err != nil {
+		return nil, err
+	}
+	userRepository := NewUserClient(client, conf.Client.Endpoint.Url) // userRepositosry := NewUserRepository(db)
 	userService := NewUserService(userRepository)
 	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, logError, validator.Validate, &action)
 
