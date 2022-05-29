@@ -5,8 +5,6 @@ import (
 	"github.com/core-go/health"
 	"github.com/core-go/log"
 	"github.com/core-go/search/query"
-	sv "github.com/core-go/service"
-	v "github.com/core-go/service/v10"
 	q "github.com/core-go/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
@@ -25,9 +23,6 @@ func NewApp(ctx context.Context, conf Config) (*ApplicationContext, error) {
 		return nil, err
 	}
 	logError := log.ErrorMsg
-	status := sv.InitializeStatus(conf.Status)
-	action := sv.InitializeAction(conf.Action)
-	validator := v.NewValidator()
 
 	userType := reflect.TypeOf(User{})
 	userQueryBuilder := query.NewBuilder(db, "users", userType)
@@ -44,7 +39,7 @@ func NewApp(ctx context.Context, conf Config) (*ApplicationContext, error) {
 	*/
 	userRepository := NewUserRepository(db)
 	userService := NewUserService(userRepository)
-	userHandler := NewUserHandler(userSearchBuilder.Search, userService, status, logError, validator.Validate, &action)
+	userHandler := NewUserHandler(userSearchBuilder.Search, userService, logError)
 
 	sqlChecker := q.NewHealthChecker(db)
 	healthHandler := health.NewHandler(sqlChecker)
