@@ -2,16 +2,15 @@ package app
 
 import (
 	"context"
+	"github.com/core-go/core"
+	v "github.com/core-go/core/v10"
 	"github.com/core-go/health"
 	"github.com/core-go/log"
 	"github.com/core-go/search/query"
-	sv "github.com/core-go/service"
-	v "github.com/core-go/service/v10"
 	q "github.com/core-go/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 
-	. "go-service/internal/usecase/user"
+	. "go-service/internal/user"
 )
 
 type ApplicationContext struct {
@@ -24,9 +23,9 @@ func NewApp(ctx context.Context, conf Config) (*ApplicationContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	logError := log.ErrorMsg
-	status := sv.InitializeStatus(conf.Status)
-	action := sv.InitializeAction(conf.Action)
+	logError := log.LogError
+	status := core.InitializeStatus(conf.Status)
+	action := core.InitializeAction(conf.Action)
 	validator := v.NewValidator()
 
 	userType := reflect.TypeOf(User{})
