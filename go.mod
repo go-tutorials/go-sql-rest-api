@@ -6,7 +6,7 @@ require (
 	github.com/core-go/config v0.1.0
 	github.com/core-go/core v0.3.5
 	github.com/core-go/health v0.4.8
-	github.com/core-go/log v0.1.2
+	github.com/core-go/log v0.1.3
 	github.com/core-go/search v0.2.8
 	github.com/core-go/service v0.3.5
 	github.com/core-go/sql v0.3.6
