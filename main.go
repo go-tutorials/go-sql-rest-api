@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/core-go/config"
-	"github.com/core-go/core"
-	"github.com/core-go/log"
+	"github.com/core-go/core/header"
+	"github.com/core-go/core/random"
+	srv "github.com/core-go/core/server"
 	mid "github.com/core-go/log/middleware"
+	"github.com/core-go/log/strings"
+	"github.com/core-go/log/zap"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
@@ -14,28 +16,44 @@ import (
 )
 
 func main() {
-	var conf app.Config
-	err := config.Load(&conf, "configs/config")
+	var cfg app.Config
+	err := config.Load(&cfg, "configs/config")
 	if err != nil {
 		panic(err)
 	}
 	r := mux.NewRouter()
 
-	log.Initialize(conf.Log)
+	log.Initialize(cfg.Log)
 	r.Use(mid.BuildContext)
-	logger := mid.NewLogger()
+	logger := mid.NewMaskLogger(cfg.MiddleWare.Request, Mask, Mask)
+	// logger := mid.NewLogger()
 	if log.IsInfoEnable() {
-		r.Use(mid.Logger(conf.MiddleWare, log.InfoFields, logger))
+		r.Use(mid.Logger(cfg.MiddleWare, log.InfoFields, logger))
 	}
+	headerHandler := header.NewHeaderHandler(cfg.Response, GenerateId)
+	r.Use(headerHandler.HandleHeader())
 	r.Use(mid.Recover(log.PanicMsg))
 
-	err = app.Route(r, context.Background(), conf)
+	ctx := context.Background()
+	err = app.Route(ctx, r, cfg)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(core.ServerInfo(conf.Server))
-	server := core.CreateServer(conf.Server, r)
+	log.Info(ctx, srv.ServerInfo(cfg.Server))
+	server := srv.CreateServer(cfg.Server, r)
 	if err = server.ListenAndServe(); err != nil {
-		fmt.Println(err.Error())
+		log.Error(ctx, err.Error())
+	}
+}
+func GenerateId() string {
+	return random.Random(16)
+}
+func Mask(obj map[string]interface{}) {
+	v, ok := obj["phone"]
+	if ok {
+		s, ok2 := v.(string)
+		if ok2 && len(s) > 3 {
+			obj["phone"] = strings.Mask(s, 0, 3, "*")
+		}
 	}
 }

@@ -1,4 +1,4 @@
-# go-sql-rest-api
+# go-sql-modular-sample
 
 #### To run the application
 ```shell
@@ -6,11 +6,11 @@ go run main.go
 ```
 
 ## Architecture
-### Architecture
-![Architecture](https://camo.githubusercontent.com/c17d4dfaab39cf7223f7775c9e973bb936e4169e8bd0011659e83cec755c8f26/68747470733a2f2f63646e2d696d616765732d312e6d656469756d2e636f6d2f6d61782f3830302f312a42526b437272622d5f417637395167737142556b48672e706e67)
+### Simple Layer Architecture
+![Layer Architecture](https://cdn-images-1.medium.com/max/800/1*JDYTlK00yg0IlUjZ9-sp7Q.png)
 
-### Architecture with standard features: config, health check, logging, middleware log tracing
-![Architecture with standard features: config, health check, logging, middleware log tracing](https://camo.githubusercontent.com/fa1158e7f94bf96e09aef42fcead23366839baf71190133d5df10f3006b2e041/68747470733a2f2f63646e2d696d616765732d312e6d656469756d2e636f6d2f6d61782f3830302f312a6d494e3344556569365676316c755a376747727655412e706e67)
+### Layer Architecture with full features
+![Layer Architecture with standard features: config, health check, logging, middleware log tracing](https://cdn-images-1.medium.com/max/800/1*8UjJSv_tW0xBKFXKZu86MA.png)
 
 #### [core-go/search](https://github.com/core-go/search)
 - Build the search model at http handler
@@ -67,7 +67,7 @@ In this sample, search users with these criteria:
 - GET: retrieve a representation of the resource
 - POST: create a new resource
 - PUT: update the resource
-- PATCH: perform a partial update of a resource, refer to [service](https://github.com/core-go/service) and [sql](https://github.com/core-go/sql)  
+- PATCH: perform a partial update of a resource, refer to [core-go/core](https://github.com/core-go/core) and [core-go/sql](https://github.com/core-go/sql)
 - DELETE: delete a resource
 
 ## API design for health check
@@ -137,46 +137,9 @@ GET /users/wolverine
     "dateOfBirth": "1974-11-16T16:59:59.999Z"
 }
 ```
-#### *Response:*
-- status: configurable; 1: success, 0: duplicate key, 4: error
+#### *Response:* 1: success, 0: duplicate key, -1: error
 ```json
-{
-    "status": 1,
-    "value": {
-        "id": "wolverine",
-        "username": "james.howlett",
-        "email": "james.howlett@gmail.com",
-        "phone": "0987654321",
-        "dateOfBirth": "1974-11-16T00:00:00+07:00"
-    }
-}
-```
-#### *Fail case sample:* 
-- Request:
-```json
-{
-    "id": "wolverine",
-    "username": "james.howlett",
-    "email": "james.howlett",
-    "phone": "0987654321a",
-    "dateOfBirth": "1974-11-16T16:59:59.999Z"
-}
-```
-- Response: in this below sample, email and phone are not valid
-```json
-{
-    "status": 4,
-    "errors": [
-        {
-            "field": "email",
-            "code": "email"
-        },
-        {
-            "field": "phone",
-            "code": "phone"
-        }
-    ]
-}
+1
 ```
 
 ### Update one user by id
@@ -192,19 +155,9 @@ PUT /users/wolverine
     "dateOfBirth": "1974-11-16T16:59:59.999Z"
 }
 ```
-#### *Response:*
-- status: configurable; 1: success, 0: duplicate key, 2: version error, 4: error
+#### *Response:* 1: success, 0: not found, -1: error
 ```json
-{
-    "status": 1,
-    "value": {
-        "id": "wolverine",
-        "username": "james.howlett",
-        "email": "james.howlett@gmail.com",
-        "phone": "0987654321",
-        "dateOfBirth": "1974-11-16T00:00:00+07:00"
-    }
-}
+1
 ```
 
 ### Patch one user by id
@@ -219,16 +172,9 @@ PATCH /users/wolverine
     "phone": "0987654321"
 }
 ```
-#### *Response:*
-- status: configurable; 1: success, 0: duplicate key, 2: version error, 4: error
+#### *Response:* 1: success, 0: not found, -1: error
 ```json
-{
-    "status": 1,
-    "value": {
-        "email": "james.howlett@gmail.com",
-        "phone": "0987654321"
-    }
-}
+1
 ```
 
 #### Problems for patch
@@ -241,19 +187,19 @@ type UserService interface {
 ```
 We must solve 2 problems:
 1. At http handler layer, we must convert the user struct to map, with json format, and make sure the nested data types are passed correctly.
-2. At repository layer, from json format, we must convert the json format to database column name
+2. At repository layer, from json format, we must convert the json format to database format (in this case, we must convert to column)
 
 #### Solutions for patch  
-At http handler layer, we use [core-go/service](https://github.com/core-go/service), to convert the user struct to map, to make sure we just update the fields we need to update
+At http handler layer, we use [core-go/core](https://github.com/core-go/core), to convert the user struct to map, to make sure we just update the fields we need to update
 ```go
-import server "github.com/core-go/service"
+import "github.com/core-go/core"
 
 func (h *UserHandler) Patch(w http.ResponseWriter, r *http.Request) {
     var user User
     userType := reflect.TypeOf(user)
-    _, jsonMap := sv.BuildMapField(userType)
-    body, _ := sv.BuildMapAndStruct(r, &user)
-    json, er1 := sv.BodyToJson(r, user, body, ids, jsonMap, nil)
+    _, jsonMap := core.BuildMapField(userType)
+    body, _ := core.BuildMapAndStruct(r, &user)
+    json, er1 := core.BodyToJson(r, user, body, ids, jsonMap, nil)
 
     result, er2 := h.service.Patch(r.Context(), json)
     if er2 != nil {
@@ -277,7 +223,8 @@ DELETE /users/wolverine
 ## Common libraries
 - [core-go/health](https://github.com/core-go/health): include HealthHandler, HealthChecker, SqlHealthChecker
 - [core-go/config](https://github.com/core-go/config): to load the config file, and merge with other environments (SIT, UAT, ENV)
-- [core-go/log](https://github.com/core-go/log): log and log middleware
+- [core-go/log](https://github.com/core-go/log): logging
+- [core-go/middleware](https://github.com/core-go/log): middleware log tracing
 
 ### core-go/health
 To check if the service is available, refer to [core-go/health](https://github.com/core-go/health)
@@ -352,7 +299,7 @@ func main() {
 
     log.Initialize(conf.Log)
     r.Use(m.BuildContext)
-    logger := m.NewLogger()
+    logger := m.NewStructuredLogger()
     r.Use(m.Logger(conf.MiddleWare, log.InfoFields, logger))
     r.Use(m.Recover(log.ErrorMsg))
 }
